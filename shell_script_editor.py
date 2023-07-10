@@ -6,12 +6,12 @@ Created on Sat Jul  8 16:08:42 2023
 """
 import os
 import re
-
-def replace_type(match):
-    type_value = match.group(1)
-    if type_value.isdigit():
-        return f", {type_value}, \" \""
-    return match.group(0)
+# keep the number and replace with the new format
+# def replace_type(match):
+#     type_value = match.group(1)
+#     if type_value.isdigit():
+#         return f", {type_value}, \' \'"
+#     return match.group(0)
 
 def replace(file_path):
     with open(file_path, encoding='utf-8') as f:
@@ -19,22 +19,26 @@ def replace(file_path):
     
     modified_lines = []
     for line in lines:
-        if re.match(r".*\(\'(,|\|)\'\s+AS\s+NCHAR\((\d+)\)*$", line, flags= re.I):
+        # find all (',', '|', x'\d+', as NCHAR) add -- at front
+        if re.match(r".*(\(\'(,|\|)\')|(\(x\'\d+\')\s+AS\s+NCHAR\((\d+)\)*$", line, flags= re.I):
             line = "--" + line
+        
+        #find first CAST and replace it with sqlext.BIG5RPAD
+        # find AS NCHAR(\d) and replace it with , \d, ' '
         else:
             line = re.sub(r"CAST", "sqlext.BIG5RPAD", line, count= 1, flags= re.I)
-            line = re.sub(r" AS\s+NCHAR\((\d+)\)", replace_type, line, count = 1, flags= re.I)
+            line = re.sub(r" AS\s+NCHAR\((\d+)\)", r", \1, ' '", line, flags= re.I)
         modified_lines.append(line)
         
-    # s = s.replace(origin, new)
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(''.join(modified_lines))
         
 
 path = input("Enter folder path: ")
+path = path.replace('"', '')
 # origin = input("Enter the orgin string: ")
 # new = input("Enter the new string: ")
-# path = "C:\\Users\\user\\Desktop\\test" 
+
 os.chdir(path)
 
 for file in os.listdir():
